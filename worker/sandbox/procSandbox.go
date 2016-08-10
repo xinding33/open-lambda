@@ -1,27 +1,27 @@
 package sandbox
 
 import (
-    "strconv"
-    "os/exec"
+	"os/exec"
+	"strconv"
 
-    "github.com/open-lambda/open-lambda/worker/handler/state"
+	"github.com/open-lambda/open-lambda/worker/handler/state"
 )
 
 type ProcSandbox struct {
-    name    string
-    mgr     *ProcManager
-    port    int
-    proc    *exec.Cmd
+	name string
+	mgr  *ProcManager
+	port int
+	proc *exec.Cmd
 }
 
 func NewProcSandbox(name string, port int, mgr *ProcManager) (s *ProcSandbox, err error) {
-    s = &ProcSandbox{name: name, mgr: mgr, port: port}
+	s = &ProcSandbox{name: name, mgr: mgr, port: port}
 
-    s.proc = exec.Command("python", "../../lambda-generator/pyserver/server.py", strconv.Itoa(port))
-    s.proc.Dir = "../../lambda-generator/pyserver/"
-    s.proc.Start()
+	s.proc = exec.Command("python", "../../lambda-generator/pyserver/server.py", strconv.Itoa(port))
+	s.proc.Dir = "../../lambda-generator/pyserver/"
+	s.proc.Start()
 
-    return s, err
+	return s, err
 }
 
 func (s *ProcSandbox) Start() error { return nil }
@@ -33,25 +33,25 @@ func (s *ProcSandbox) Pause() error { return nil }
 func (s *ProcSandbox) Unpause() error { return nil }
 
 func (s *ProcSandbox) Remove() error {
-    // pgid, err := syscall.Getpgid(s.proc.Process.Pid)
-    // if err == nil {
-    //     syscall.Kill(-pgid, 15)  // TODO(mike): no idea if this works
-    // } else {
-    //     return err
-    // }
+	// pgid, err := syscall.Getpgid(s.proc.Process.Pid)
+	// if err == nil {
+	//     syscall.Kill(-pgid, 15)  // TODO(mike): no idea if this works
+	// } else {
+	//     return err
+	// }
 
-    // cmd.Wait()
-    return nil
+	// cmd.Wait()
+	return nil
 }
 
 func (s *ProcSandbox) Logs() (string, error) {
-    return "Logging not implemented for ProcSandbox", nil
+	return "Logging not implemented for ProcSandbox", nil
 }
 
 func (s *ProcSandbox) State() (state.HandlerState, error) {
-    return state.Running, nil
+	return state.Running, nil
 }
 
 func (s *ProcSandbox) Port() (string, error) {
-    return strconv.Itoa(s.port), nil
+	return strconv.Itoa(s.port), nil
 }

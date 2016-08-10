@@ -2,9 +2,9 @@ package handler
 
 import (
 	"log"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 
 	"github.com/open-lambda/open-lambda/worker/handler/state"
 	"github.com/open-lambda/open-lambda/worker/sandbox"
