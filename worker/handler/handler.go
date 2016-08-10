@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"strconv"
 
 	"github.com/open-lambda/open-lambda/worker/handler/state"
 	"github.com/open-lambda/open-lambda/worker/sandbox"
@@ -72,7 +73,8 @@ func (h *HandlerSet) Dump() {
 	}
 }
 
-func (h *Handler) RunStart() (port string, err error) {
+func (h *Handler) RunStart(port int) (rport string, err error) {
+	rport = strconv.Itoa(port)
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
@@ -88,7 +90,7 @@ func (h *Handler) RunStart() (port string, err error) {
 
 	// create sandbox if needed
 	if h.sandbox == nil {
-		sandbox, err := h.hset.sm.Create(h.name)
+		sandbox, err := h.hset.sm.Create(h.name, port)
 		if err != nil {
 			return "", err
 		}
@@ -113,7 +115,7 @@ func (h *Handler) RunStart() (port string, err error) {
 
 	h.runners += 1
 
-	return h.sandbox.Port()
+	return
 }
 
 func (h *Handler) RunFinish() {

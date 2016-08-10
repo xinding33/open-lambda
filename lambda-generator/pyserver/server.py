@@ -1,12 +1,13 @@
 #!/usr/bin/python
 import traceback, json, socket, struct, os, sys
 import lambda_func # assume submitted .py file is called lambda_func
+# TODO(mike) generate list of correct names to import - will not be containerized
 import rethinkdb
 import flask
 app = flask.Flask(__name__)
 
 PROCESSES_DEFAULT = 10
-PORT = 8080
+# PORT = 8080
 initialized = False
 config = None
 db_conn = None
@@ -60,7 +61,8 @@ def main():
         config = json.loads(f.read())
     procs = config.get('processes', PROCESSES_DEFAULT)
     print 'Starting %d flask processes' % procs
-    app.run(processes=procs, host='0.0.0.0', port=PORT)
+
+    app.run(processes=procs, host='127.0.0.1', port=int(sys.argv[1]), debug=True)
 
 if __name__ == '__main__':
     main()

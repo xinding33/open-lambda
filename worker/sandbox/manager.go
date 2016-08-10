@@ -1,6 +1,6 @@
 package sandbox
 
 type SandboxManager interface {
-	Create(name string) (Sandbox, error)
+	Create(name string, port int) (Sandbox, error)
 	Pull(name string) error
 }

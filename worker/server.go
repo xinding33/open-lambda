@@ -21,6 +21,7 @@ type Server struct {
 	config      *config.Config
 	handlers    *handler.HandlerSet
 	lambdaTimer *turnip.Turnip
+	nextPort    int // TODO(mike) increment this when a new ProcSandbox is created
 }
 
 type httpErr struct {
@@ -34,7 +35,8 @@ func newHttpErr(msg string, code int) *httpErr {
 
 func NewServer(config *config.Config) (*Server, error) {
 	// create server
-	sm := sandbox.NewDockerManager(config)
+	sm := sandbox.NewProcManager(config)
+
 	opts := handler.HandlerSetOpts{
 		Sm:  sm,
 		Lru: handler.NewHandlerLRU(100), // TODO(tyler)
@@ -44,6 +46,7 @@ func NewServer(config *config.Config) (*Server, error) {
 		config:      config,
 		handlers:    handler.NewHandlerSet(opts),
 		lambdaTimer: turnip.NewTurnip(),
+		nextPort:    50000,
 	}
 
 	return server, nil
@@ -54,7 +57,7 @@ func (s *Server) Manager() sandbox.SandboxManager {
 }
 
 func (s *Server) ForwardToSandbox(handler *handler.Handler, r *http.Request, input []byte) ([]byte, *http.Response, *httpErr) {
-	port, err := handler.RunStart()
+	port, err := handler.RunStart(s.nextPort)
 	if err != nil {
 		return nil, nil, newHttpErr(
 			err.Error(),
@@ -66,15 +69,16 @@ func (s *Server) ForwardToSandbox(handler *handler.Handler, r *http.Request, inp
 	// forward request to sandbox.  r and w are the server
 	// request and response respectively.  r2 and w2 are the
 	// sandbox request and response respectively.
-	host := fmt.Sprintf("%s:%s", s.config.Docker_host, port)
+	host := fmt.Sprintf("%s:%s", "127.0.0.1", port)
 	url := fmt.Sprintf("http://%s%s", host, r.URL.Path)
 	// log.Printf("proxying request to %s\n", url)
 
 	// TODO(tyler): some sort of smarter backoff.  Or, a better
 	// way to detect a started sandbox.
-	max_tries := 10
+	max_tries := 1//0 - to speed up testing
 	for tries := 1; ; tries++ {
 		r2, err := http.NewRequest(r.Method, url, bytes.NewReader(input))
+
 		if err != nil {
 			return nil, nil, newHttpErr(
 				err.Error(),
@@ -84,6 +88,7 @@ func (s *Server) ForwardToSandbox(handler *handler.Handler, r *http.Request, inp
 		r2.Header.Set("Content-Type", r.Header.Get("Content-Type"))
 		client := &http.Client{}
 		w2, err := client.Do(r2)
+
 		if err != nil {
 			log.Printf("request to sandbox failed with %v\n", err)
 			if tries == max_tries {
@@ -173,9 +178,7 @@ func (s *Server) RunLambda(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.msg, err.code)
 		}
 		s.lambdaTimer.Stop()
-
 	}
-
 }
 
 func (s *Server) Dump() {

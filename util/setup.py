@@ -15,7 +15,7 @@ def main():
         print "That is not an application directory. Go to /applications."
         sys.exit()
     app_dir = os.path.join( SCRIPT_DIR, "..", "applications", args.appdir)
-    app_files =  [z for z in os.listdir(app_dir) if os.path.isfile(os.path.join(app_dir, z))]   
+    app_files =  [z for z in os.listdir(app_dir) if os.path.isfile(os.path.join(app_dir, z))]
     if args.appfile not in app_files:
         print "That file is not in this directory"
         sys.exit()
@@ -49,7 +49,7 @@ def main():
     print 'Pushing image'
     registry = rdjs(os.path.join(cluster_dir, 'registry.json'))
     img = 'localhost:%s/%s' % (registry['host_port'], app_name)
-    run('docker tag -f %s %s' % (app_name, img), True)
+    run('docker tag %s %s' % (app_name, img), True)
     run('docker push ' + img, True)
 
     # setup config
@@ -69,7 +69,6 @@ def main():
     else:
         print "No init.py script to run"
 
-            
     # directions
     print '='*40
     print 'Consider serving the app with nginx as follows:'
