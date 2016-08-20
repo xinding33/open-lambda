@@ -17,8 +17,8 @@ type ProcSandbox struct {
 func NewProcSandbox(name string, port int, mgr *ProcManager) (s *ProcSandbox, err error) {
 	s = &ProcSandbox{name: name, mgr: mgr, port: port}
 
-	s.proc = exec.Command("python", "../../lambda-generator/pyserver/server.py", strconv.Itoa(port))
-	s.proc.Dir = "../../lambda-generator/pyserver/"
+	s.proc = exec.Command("python", "/open-lambda/pyserver/server.py", strconv.Itoa(port))
+	s.proc.Dir = "/open-lambda/pyserver/"
 	s.proc.Start()
 
 	return s, err

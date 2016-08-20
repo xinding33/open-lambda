@@ -20,5 +20,14 @@ COPY bin /open-lambda/bin
 COPY startup.py /open-lambda/startup.py
 COPY kill.py /open-lambda/kill.py
 
+# BE READY TO RUN PROCESSES (Instead of additional containers)
+RUN apt-get update -y
+RUN apt-get install -y python-pip python-dev build-essential
+RUN pip install rethinkdb
+RUN pip install Flask
+COPY /pyserver/server.py /open-lambda/pyserver/server.py
+COPY /pyserver/lambda_func.py /open-lambda/pyserver/lambda_func.py
+COPY /pyserver/config.json /open-lambda/pyserver/config.json
+
 # INIT
 CMD ["python", "/open-lambda/startup.py"]

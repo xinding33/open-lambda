@@ -18,10 +18,11 @@ all : .git/hooks/pre-commit imgs/lambda-node
 .git/hooks/pre-commit: util/pre-commit
 	cp util/pre-commit .git/hooks/pre-commit
 
-# OL worker container, with OL server, Docker, and RethinkDB
+# OL worker container, with OL server, Docker, and RethinkDB PLUS pyserver for proc alternative
 imgs/lambda-node : bin/worker node/Dockerfile node/startup.py node/kill.py
 	mkdir -p node/bin
 	cp bin/worker node/bin/worker
+	cp -r lambda-generator/pyserver node/
 	docker build -t lambda-node node
 	touch imgs/lambda-node
 
