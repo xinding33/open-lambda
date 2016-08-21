@@ -53,8 +53,8 @@ def flask_post(path):
         except:
             return ('bad POST data: "%s"'%str(data), 400)
         return json.dumps(lambda_func.handler(db_conn, event))
-    except Exception:
-        return (traceback.format_exc(), 500) # internal error
+    except Exception as inst:
+        return inst#(traceback.format_exc(), 501) # internal error
 
 def main():
     with open('config.json') as f:
