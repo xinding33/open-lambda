@@ -25,7 +25,7 @@ def init(conn, event):
     smap = {}
     umap = {}
     for x in range(1, CNT + 1):
-        smap[str(x)] = 'free' 
+        smap[str(x)] = 'free'
         umap[str(x)] = ''
 
     rv += str(r.db(TIX).table(VENU).insert({
