@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import traceback, json, socket, struct, os, sys
 import rethinkdb
+import pymongo
 import flask
 
 sys.path.append('/handler')
@@ -26,6 +27,11 @@ def init():
         port = config.get('rethinkdb.port', 28015)
         print 'Connect to %s:%d' % (host, port)
         db_conn = rethinkdb.connect(host, port)
+    elif config.get('db', None) == 'mongodb':
+        host = config.get('mongodb.host', 'localhost')
+        port = config.get('mongodb.port', 27017)
+        print 'Connect to mongo%s:%d' % (host, port)
+        db_conn = pymongo.MongoClient(host, port)
     initialized = True
 
 # catch everything
