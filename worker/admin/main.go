@@ -88,6 +88,7 @@ func NewAdmin() *Admin {
 	admin.fns["help"] = admin.help
 	admin.fns["new"] = admin.new_cluster
 	admin.fns["status"] = admin.status
+	admin.fns["mongodb"] = admin.mongodb
 	admin.fns["rethinkdb"] = admin.rethinkdb
 	admin.fns["worker-exec"] = admin.worker_exec
 	admin.fns["workers"] = admin.workers
@@ -271,6 +272,62 @@ func (admin *Admin) status() error {
 	return nil
 }
 
+func (admin *Admin) mongodb() error {
+	args := NewCmdArgs()
+	args.Parse(true)
+
+	client := admin.client
+	labels := map[string]string{}
+	labels[sandbox.DOCKER_LABEL_CLUSTER] = *args.cluster
+	labels[sandbox.DOCKER_LABEL_TYPE] = "mongodb"
+
+	image := "mongo"
+
+	// pull if not local
+	_, err := admin.client.InspectImage(image)
+	if err == docker.ErrNoSuchImage {
+		fmt.Printf("Pulling MongoDB image...\n")
+		err := admin.client.PullImage(
+			docker.PullImageOptions{
+				Repository: image,
+				Tag:        "latest", // TODO: fixed version?
+			},
+			docker.AuthConfiguration{},
+		)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	fmt.Printf("Starting single MongoDB container\n")
+
+	// create and start container
+	container, err := client.CreateContainer(
+		docker.CreateContainerOptions{
+			Config: &docker.Config{
+				Image:  image,
+				Labels: labels,
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if err := client.StartContainer(container.ID, container.HostConfig); err != nil {
+		return err
+	}
+
+	// get network assignments
+	container, err = client.InspectContainer(container.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (admin *Admin) rethinkdb() error {
 	args := NewCmdArgs()
 	count := args.flags.Int("n", 1, "specify number of nodes to start")
@@ -279,7 +336,7 @@ func (admin *Admin) rethinkdb() error {
 	client := admin.client
 	labels := map[string]string{}
 	labels[sandbox.DOCKER_LABEL_CLUSTER] = *args.cluster
-	labels[sandbox.DOCKER_LABEL_TYPE] = "db"
+	labels[sandbox.DOCKER_LABEL_TYPE] = "rethinkdb"
 
 	image := "rethinkdb"
 
@@ -371,14 +428,14 @@ func (admin *Admin) workers() error {
 			return err
 		}
 
-		// start one worker per db shard
-		for _, cid := range nodes["db"] {
+		// start one worker per rethinkdb shard
+		for _, cid := range nodes["rethinkdb"] {
 			container, err := admin.client.InspectContainer(cid)
 			if err != nil {
 				return err
 			}
 
-			fmt.Printf("DB node: %v\n", container.NetworkSettings.IPAddress)
+			fmt.Printf("RethinkDB node: %v\n", container.NetworkSettings.IPAddress)
 
 			c, err := config.ParseConfig(args.TemplatePath())
 			if err != nil {
@@ -388,6 +445,26 @@ func (admin *Admin) workers() error {
 			sandbox_config["db"] = "rethinkdb"
 			sandbox_config["rethinkdb.host"] = container.NetworkSettings.IPAddress
 			sandbox_config["rethinkdb.port"] = 28015
+			worker_confs = append(worker_confs, c)
+		}
+
+		// start one worker per mongodb shard
+		for _, cid := range nodes["mongodb"] {
+			container, err := admin.client.InspectContainer(cid)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("MongoDB node: %v\n", container.NetworkSettings.IPAddress)
+
+			c, err := config.ParseConfig(args.TemplatePath())
+			if err != nil {
+				return err
+			}
+			sandbox_config := c.Sandbox_config.(map[string]interface{})
+			sandbox_config["db"] = "mongodb"
+			sandbox_config["mongodb.host"] = container.NetworkSettings.IPAddress
+			sandbox_config["mongodb.port"] = 27017
 			worker_confs = append(worker_confs, c)
 		}
 	} else {
@@ -634,7 +711,7 @@ func (admin *Admin) olstore() error {
 	}
 
 	ips := []string{}
-	for _, cid := range nodes["db"] {
+	for _, cid := range nodes["rethinkdb"] {
 		container, err := admin.client.InspectContainer(cid)
 		if err != nil {
 			return err
