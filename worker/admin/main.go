@@ -397,56 +397,68 @@ func (admin *Admin) worker_exec() error {
 
 func (admin *Admin) workers() error {
 	args := NewCmdArgs()
-	foreach := args.flags.Bool("foreach", false, "start one worker per db instance")
+	db := args.flags.String("db", "", "specify db to connect to")
 	portbase := args.flags.Int("port", 8080, "port range [port, port+n) will be used for containers")
 	n := args.flags.Int("n", 1, "specify number of workers to start")
 	args.Parse(true)
 
 	worker_confs := []*config.Config{}
-	if *foreach {
+	if *db != "" {
 		nodes, err := admin.cluster_nodes(*args.cluster)
 		if err != nil {
 			return err
 		}
 
-		// start one worker per rethinkdb shard
-		for _, cid := range nodes["rethinkdb"] {
-			container, err := admin.client.InspectContainer(cid)
-			if err != nil {
-				return err
+		if *db == "rethinkdb" {
+			if len(nodes["rethinkdb"]) == 0 {
+				return fmt.Errorf("no rethinkdb container started")
 			}
-
+			cid := nodes["rethinkdb"][0]
+			container, err := admin.client.InspectContainer(cid)
 			fmt.Printf("RethinkDB node: %v\n", container.NetworkSettings.IPAddress)
 
-			c, err := config.ParseConfig(args.TemplatePath())
-			if err != nil {
-				return err
-			}
-			sandbox_config := c.Sandbox_config.(map[string]interface{})
-			sandbox_config["db"] = "rethinkdb"
-			sandbox_config["rethinkdb.host"] = container.NetworkSettings.IPAddress
-			sandbox_config["rethinkdb.port"] = 28015
-			worker_confs = append(worker_confs, c)
-		}
+			for i := 0; i < *n; i++ {
 
-		// start one worker per mongodb shard
-		for _, cid := range nodes["mongodb"] {
+				if err != nil {
+					return err
+				}
+
+				c, err := config.ParseConfig(args.TemplatePath())
+				if err != nil {
+					return err
+				}
+				sandbox_config := c.Sandbox_config.(map[string]interface{})
+				sandbox_config["db"] = "rethinkdb"
+				sandbox_config["rethinkdb.host"] = container.NetworkSettings.IPAddress
+				sandbox_config["rethinkdb.port"] = 28015
+				worker_confs = append(worker_confs, c)
+			}
+		} else if *db == "mongodb" {
+			if len(nodes["mongodb"]) == 0 {
+				return fmt.Errorf("no mongodb container started")
+			}
+			cid := nodes["mongodb"][0]
 			container, err := admin.client.InspectContainer(cid)
-			if err != nil {
-				return err
-			}
-
 			fmt.Printf("MongoDB node: %v\n", container.NetworkSettings.IPAddress)
 
-			c, err := config.ParseConfig(args.TemplatePath())
-			if err != nil {
-				return err
+			for i := 0; i < *n; i++ {
+
+				if err != nil {
+					return err
+				}
+
+				c, err := config.ParseConfig(args.TemplatePath())
+				if err != nil {
+					return err
+				}
+				sandbox_config := c.Sandbox_config.(map[string]interface{})
+				sandbox_config["db"] = "mongodb"
+				sandbox_config["mongodb.host"] = container.NetworkSettings.IPAddress
+				sandbox_config["mongodb.port"] = 27017
+				worker_confs = append(worker_confs, c)
 			}
-			sandbox_config := c.Sandbox_config.(map[string]interface{})
-			sandbox_config["db"] = "mongodb"
-			sandbox_config["mongodb.host"] = container.NetworkSettings.IPAddress
-			sandbox_config["mongodb.port"] = 27017
-			worker_confs = append(worker_confs, c)
+		} else {
+			return fmt.Errorf("invalid db specification\n")
 		}
 	} else {
 		for i := 0; i < *n; i++ {
