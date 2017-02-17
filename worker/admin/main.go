@@ -330,7 +330,6 @@ func (admin *Admin) mongodb() error {
 
 func (admin *Admin) rethinkdb() error {
 	args := NewCmdArgs()
-	count := args.flags.Int("n", 1, "specify number of nodes to start")
 	args.Parse(true)
 
 	client := admin.client
@@ -358,43 +357,25 @@ func (admin *Admin) rethinkdb() error {
 		return err
 	}
 
-	var first_container *docker.Container
+	cmd := []string{"rethinkdb", "--bind", "all"}
 
-	for i := 0; i < *count; i++ {
-		cmd := []string{"rethinkdb", "--bind", "all"}
-		if first_container != nil {
-			ip := first_container.NetworkSettings.IPAddress
-			cmd = append(cmd, "--join", fmt.Sprintf("%s:%d", ip, 29015))
-		}
+	fmt.Printf("Starting single RethinkDB container\n")
 
-		fmt.Printf("Starting shard: %s\n", strings.Join(cmd, " "))
-
-		// create and start container
-		container, err := client.CreateContainer(
-			docker.CreateContainerOptions{
-				Config: &docker.Config{
-					Cmd:    cmd,
-					Image:  image,
-					Labels: labels,
-				},
+	// create and start container
+	container, err := client.CreateContainer(
+		docker.CreateContainerOptions{
+			Config: &docker.Config{
+				Cmd:    cmd,
+				Image:  image,
+				Labels: labels,
 			},
-		)
-		if err != nil {
-			return err
-		}
-		if err := client.StartContainer(container.ID, container.HostConfig); err != nil {
-			return err
-		}
-
-		// get network assignments
-		container, err = client.InspectContainer(container.ID)
-		if err != nil {
-			return err
-		}
-
-		if i == 0 {
-			first_container = container
-		}
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if err := client.StartContainer(container.ID, container.HostConfig); err != nil {
+		return err
 	}
 
 	return nil
