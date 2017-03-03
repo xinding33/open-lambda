@@ -39,6 +39,9 @@ test-config :
 test : test-config imgs/lambda
 	cd $(WORKER_DIR) && $(GO) test ./handler -v
 	cd $(WORKER_DIR) && $(GO) test ./server -v
+	docker unpause $(shell docker ps -q --filter=label=ol.cluster=test_cluster --filter=status=paused) 2>/dev/null || :
+	docker kill $(shell docker ps -q --filter=label=ol.cluster=test_cluster) 2>/dev/null || :
+	docker rm $(shell docker ps -aq --filter=label=ol.cluster=test_cluster) 2>/dev/null || :
 
 .PHONY: clean
 clean :
