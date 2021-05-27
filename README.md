@@ -1,4 +1,6 @@
 # OpenLambda
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fxinding33%2Fopen-lambda.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fxinding33%2Fopen-lambda?ref=badge_shield)
+
 
 OpenLambda is an Apache-licensed serverless computing project, written
 in Go and based on Linux containers.  The primary goal of OpenLambda
@@ -79,3 +81,6 @@ You can shutdown a detached worker like this:
 ## License
 
 This project is licensed under the Apache License - see the [LICENSE.md](LICENSE.md) file for details.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fxinding33%2Fopen-lambda.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fxinding33%2Fopen-lambda?ref=badge_large)
